@@ -873,10 +873,10 @@ final class AIEnhancementSettingsViewModel: ObservableObject {
             source: "AISettingsView"
         )
 
-        guard let url = URL(string: fullURL) else {
+        guard let candidate = URL(string: fullURL), let url = try? LocalOnlyNetworking.validatedURL(candidate) else {
             await MainActor.run {
                 self.updateConnectionStatus(.failed, for: providerID)
-                self.setConnectionError("Invalid Base URL format: '\(endpoint)' could not be parsed as a URL", for: providerID)
+                self.setConnectionError("Only AI servers on this Mac are allowed (localhost, 127.0.0.1, or [::1]).", for: providerID)
             }
             return
         }
@@ -962,7 +962,7 @@ final class AIEnhancementSettingsViewModel: ObservableObject {
 
         // Make the request
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await LocalOnlyNetworking.session.data(for: request)
             // A late result must never label a different model or changed credentials.
             guard verificationIdentity == self.modelVerificationIdentity(for: providerID) else { return }
 

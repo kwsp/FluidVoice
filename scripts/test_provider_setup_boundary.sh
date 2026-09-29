@@ -16,6 +16,7 @@ task_test_dir=$(mktemp -d /tmp/fluidvoice-provider-setup.XXXXXX)
 } > "$task_test_dir/Removal.swift"
 xcrun swiftc -parse-as-library \
     "$task_test_dir/Removal.swift" \
+    Sources/Fluid/Networking/LocalOnlyNetworking.swift \
     Sources/Fluid/UI/AISettings/ProviderSetupDraft.swift \
     Sources/Fluid/UI/AISettings/AIEnhancementSettingsViewModel+ProviderSetup.swift \
     Tests/ProviderSetupBoundaryTests.swift \

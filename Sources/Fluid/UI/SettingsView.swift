@@ -60,11 +60,7 @@ struct SettingsView: View {
     @State private var cachedDefaultInputUID: String = ""
     @State private var cachedDefaultOutputName: String = ""
 
-    // Detailed analytics consent UI state (default ON; daily activity remains enabled)
-    @State private var shareDetailedAnalytics: Bool = SettingsStore.shared.shareDetailedAnalytics
-    @State private var showAnalyticsPrivacy: Bool = false
-    @State private var pendingDetailedAnalyticsValue: Bool? = nil
-    @State private var showDetailedAnalyticsConfirmation: Bool = false
+
     @State private var rollbackVersion: String = ""
     @State private var isRollingBack: Bool = false
     @State private var audioHistoryBudgetText: String = Self.audioBudgetText(for: SettingsStore.shared.audioHistoryBudgetGB)
@@ -84,45 +80,6 @@ struct SettingsView: View {
 
     private func isRecording(_ target: ShortcutRecordingTarget) -> Bool {
         self.activeShortcutRecordingTarget == target
-    }
-
-    private var detailedAnalyticsToggleBinding: Binding<Bool> {
-        Binding(
-            get: {
-                self.pendingDetailedAnalyticsValue ?? self.shareDetailedAnalytics
-            },
-            set: { newValue in
-                // User is trying to turn OFF → ask first
-                if self.shareDetailedAnalytics, !newValue {
-                    self.pendingDetailedAnalyticsValue = false
-                    self.showDetailedAnalyticsConfirmation = true
-
-                    return
-                }
-
-                // Normal ON path
-                self.shareDetailedAnalytics = newValue
-                self.applyAnalyticsConsentChange(newValue)
-            }
-        )
-    }
-
-    private var detailedAnalyticsConfirmationBinding: Binding<Bool> {
-        Binding(
-            get: { self.showDetailedAnalyticsConfirmation },
-            set: { newValue in
-                // Only open modal if we have a pending value
-                if newValue {
-                    if self.pendingDetailedAnalyticsValue != nil {
-                        self.showDetailedAnalyticsConfirmation = true
-                    }
-                } else {
-                    // Closing the modal: reset pending state
-                    self.showDetailedAnalyticsConfirmation = false
-                    self.pendingDetailedAnalyticsValue = nil
-                }
-            }
-        )
     }
 
     private var currentAppVersion: String {
@@ -942,24 +899,9 @@ struct SettingsView: View {
                                             .settingsSearchTarget(.dictionarySuggestions)
                                         Divider().opacity(0.2)
 
-                                        self.optionToggleRow(
-                                            title: "Share Detailed Anonymous Analytics",
-                                            description: "Share anonymous daily feature, insertion performance, onboarding, and model metrics. " +
-                                                "When off, FluidVoice still records the anonymous daily activity signal and, in beta builds, daily ASR and Fluid Intelligence timing summaries. " +
-                                                "Never includes transcription text or prompts.",
-                                            isOn: self.detailedAnalyticsToggleBinding
-                                        )
-                                        .settingsSearchTarget(.analyticsPrivacy)
-
-                                        HStack {
-                                            Button("What we collect") {
-                                                self.showAnalyticsPrivacy = true
-                                            }
-                                            .buttonStyle(.link)
-
-                                            Spacer()
-                                        }
-                                        .padding(.top, 6)
+                                        Text("Telemetry and transcript example uploads are disabled in this fork.")
+                                            .foregroundStyle(.secondary)
+                                            .settingsSearchTarget(.analyticsPrivacy)
                                     }
                                     .padding(12)
                                 }
@@ -1621,27 +1563,6 @@ struct SettingsView: View {
             .environment(\.settingsSearchPresentation, self.settingsSearchPresentation)
         }
         .id(self.selectedSection)
-        .sheet(isPresented: self.$showAnalyticsPrivacy) {
-            AnalyticsPrivacyView()
-                .frame(minWidth: 520, minHeight: 520)
-                .appTheme(self.theme)
-        }
-        .sheet(isPresented: self.detailedAnalyticsConfirmationBinding) {
-            AnalyticsConfirmationView(
-                onConfirm: {
-                    if let pending = pendingDetailedAnalyticsValue {
-                        self.shareDetailedAnalytics = pending
-                        self.applyAnalyticsConsentChange(pending)
-                    }
-                    self.pendingDetailedAnalyticsValue = nil
-                    self.showDetailedAnalyticsConfirmation = false
-                },
-                onCancel: {
-                    self.pendingDetailedAnalyticsValue = nil
-                    self.showDetailedAnalyticsConfirmation = false
-                }
-            )
-        }
         .task(id: self.selectedSection) {
             await self.prepareSelectedSection()
         }
@@ -1739,9 +1660,6 @@ struct SettingsView: View {
     }
 
     private func syncLocalSettingsAfterBackupRestore() {
-        self.shareDetailedAnalytics = SettingsStore.shared.shareDetailedAnalytics
-        self.pendingDetailedAnalyticsValue = nil
-        self.showDetailedAnalyticsConfirmation = false
         self.refreshAudioHistoryUsage()
     }
 
@@ -1892,10 +1810,7 @@ struct SettingsView: View {
         NSWorkspace.shared.open(url)
     }
 
-    private func applyAnalyticsConsentChange(_ enabled: Bool) {
-        SettingsStore.shared.shareDetailedAnalytics = enabled
-        AnalyticsService.shared.setDetailedAnalyticsEnabled(enabled)
-    }
+
 
     // MARK: - Helper Views
 
@@ -3087,77 +3002,6 @@ private struct DictionarySuggestionsSettingsRow: View {
                 .padding(.leading, 16)
             }
         }
-    }
-}
-
-// MARK: - Analytics modal confirmation
-
-struct AnalyticsConfirmationView: View {
-    let onConfirm: () -> Void
-    let onCancel: () -> Void
-    @Environment(\.theme) private var theme
-
-    private var contactInfoText: AttributedString {
-        var text = AttributedString(
-            "If you have any concerns we would love to hear about it, please email alticdev@gmail.com or file an issue in our GitHub."
-        )
-
-        if let emailRange = text.range(of: "alticdev@gmail.com") {
-            text[emailRange].link = URL(string: "mailto:alticdev@gmail.com")
-            text[emailRange].foregroundColor = self.theme.palette.accent
-        }
-
-        if let githubRange = text.range(of: "GitHub") {
-            text[githubRange].link = URL(string: "https://github.com/altic-dev/FluidVoice")
-            text[githubRange].foregroundColor = self.theme.palette.accent
-        }
-
-        return text
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Stop sharing detailed anonymous analytics?")
-                .font(.fluidSystem(.headline))
-
-            Text("We never collect audio, transcription text, prompts, or other personal information.")
-                .font(self.theme.typography.bodySmall)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(self.theme.palette.cardBackground)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(self.theme.palette.cardBorder.opacity(0.6), lineWidth: 1)
-                )
-
-            Text(self.contactInfoText)
-                .font(self.theme.typography.bodySmall)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-
-            Divider()
-
-            HStack {
-                Spacer()
-
-                Button("Cancel") {
-                    self.onCancel()
-                }
-
-                Button("Stop Detailed Analytics") {
-                    self.onConfirm()
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
-            }
-        }
-        .padding(20)
-        .frame(width: 420)
     }
 }
 

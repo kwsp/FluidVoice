@@ -1,3 +1,5 @@
+> **Local-data fork:** telemetry and feedback/example uploads are removed. Apple Speech must run on device, and AI providers are restricted to loopback servers. STT downloads remain available. Command subprocess networking and upstream updates are still pending removal; see [PRIVACY_CHECKLIST.md](PRIVACY_CHECKLIST.md) for status and the upstream-rebase procedure. Product descriptions below otherwise originate upstream.
+
 # FluidVoice
 
 <p align="center">
@@ -260,28 +262,11 @@ xcodebuild test -project Fluid.xcodeproj -scheme Fluid -destination 'platform=ma
 
 ## Privacy & Analytics
 
-FluidVoice is **local-first**. Your voice, audio, and transcribed text never leave your machine unless you explicitly opt in to a cloud AI provider.
+This fork removes analytics collection and upload, including the daily activity and beta performance signals. Legacy telemetry queues and the anonymous installation ID are deleted at launch. Feedback and transcript-example submission are removed.
 
-### What's Collected
+Speech recognition must run on device. AI inference, model catalogs, and connection tests accept only localhost/127.0.0.1/[::1], reject redirects, and bypass proxies. A loopback server must itself be configured for on-device inference. STT model downloads are retained.
 
-FluidVoice records one anonymous activity signal per local day and uploads the week's buffered signals together after the week ends. Detailed anonymous analytics are enabled by default and can be disabled at any time from `Settings → Share Detailed Anonymous Analytics`; when disabled, only the weekly activity batch is sent.
-
-**Daily activity:**
-
-- A random installation ID, activity date, app version, and macOS platform label
-
-**With detailed analytics enabled:**
-
-- Daily feature and model usage totals
-- Onboarding progress
-- Model download starts and high-level outcomes
-
-**Not Collected:**
-
-- Voice, raw audio, or transcribed text
-- Selected text, prompts, or AI responses
-- Terminal commands, window titles, file paths, clipboard, or typed content
-- Any personal or private information
+This is not yet a complete network isolation boundary: Command mode can run network-capable subprocesses, upstream updates/changelog still contact GitHub, and explicit sharing/delivery to other apps can transmit content. See [PRIVACY_CHECKLIST.md](PRIVACY_CHECKLIST.md) for remaining work and [NETWORK_AUDIT.md](NETWORK_AUDIT.md) for the historical audit.
 
 ---
 

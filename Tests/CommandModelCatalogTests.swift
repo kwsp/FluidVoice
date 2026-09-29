@@ -47,10 +47,10 @@ final class SettingsStore: ObservableObject {
     var writes: [String] = []
     var commandModeSelectedProviderID = "" { didSet { self.writes.append("commandProvider") } }
     var commandModeSelectedModel: String? { didSet { self.writes.append("commandModel") } }
-    var selectedProviderID = "openai" { didSet { self.writes.append("globalProvider") } }
+    var selectedProviderID = "ollama" { didSet { self.writes.append("globalProvider") } }
     var selectedModel: String? = "global-model" { didSet { self.writes.append("globalModel") } }
-    var selectedModelByProvider = ["openai": "global-model"] { didSet { self.writes.append("providerDefaults") } }
-    var rewriteModeSelectedProviderID = "anthropic" { didSet { self.writes.append("rewriteProvider") } }
+    var selectedModelByProvider = ["ollama": "global-model"] { didSet { self.writes.append("providerDefaults") } }
+    var rewriteModeSelectedProviderID = "lmstudio" { didSet { self.writes.append("rewriteProvider") } }
     var rewriteModeSelectedModel = "rewrite-model" { didSet { self.writes.append("rewriteModel") } }
     var verifiedProviderFingerprints: [String: String] = [:] { didSet { self.writes.append("verification") } }
     var availableModelsByProvider: [String: [String]] = [:] { didSet { self.writes.append("modelLists") } }
@@ -82,20 +82,21 @@ final class SettingsStore: ObservableObject {
         UserDefaults.standard.writes = []
         let settings = SettingsStore()
         settings.savedProviders = [
-            .init(id: "custom-a", name: "My Gateway", baseURL: "https://gateway.test/v1", models: ["saved-fallback"]),
-            .init(id: "custom:custom-a", name: "Duplicate alias", baseURL: "https://gateway.test/v1", models: ["alias-fallback"]),
+            .init(id: "custom-a", name: "My Gateway", baseURL: "http://127.0.0.1:2345/v1", models: ["saved-fallback"]),
+            .init(id: "custom:custom-a", name: "Duplicate alias", baseURL: "http://127.0.0.1:2345/v1", models: ["alias-fallback"]),
             .init(id: "custom-b", name: "Home Server", baseURL: "http://localhost:1235/v1", models: ["friendly-id"]),
             .init(id: "unverified", name: "Not Verified", baseURL: "https://unverified.test/v1", models: ["hidden-model"]),
         ]
         settings.availableModelsByProvider = [
-            "openai": ["shared-model", " shared-model ", "chat-beta", "", "text-embedding-3", "rerank-v2", "moderation-v1", "tts-one", "whisper-one", "dall-e-3", "davinci", "fluid-dictation"],
+            "ollama": ["shared-model", " shared-model ", "chat-beta", "", "text-embedding-3", "rerank-v2", "moderation-v1", "tts-one", "whisper-one", "dall-e-3", "davinci", "fluid-dictation"],
+            "lmstudio": ["local-chat"],
             "custom:custom-a": ["shared-model", "custom-chat"],
             "custom-a": ["old-alias-model"],
             "fluid": ["fluid-dictation"],
         ]
-        self.verify(settings, id: "openai", baseURL: ModelRepository.shared.defaultBaseURL(for: "openai"), key: "openai-key")
-        self.verify(settings, id: "anthropic", baseURL: ModelRepository.shared.defaultBaseURL(for: "anthropic"), key: "anthropic-key")
-        self.verify(settings, id: "custom-a", baseURL: "https://gateway.test/v1", key: "gateway-key")
+        self.verify(settings, id: "ollama", baseURL: ModelRepository.shared.defaultBaseURL(for: "ollama"), key: "ollama-key")
+        self.verify(settings, id: "lmstudio", baseURL: ModelRepository.shared.defaultBaseURL(for: "lmstudio"), key: "lmstudio-key")
+        self.verify(settings, id: "custom-a", baseURL: "http://127.0.0.1:2345/v1", key: "gateway-key")
         self.verify(settings, id: "custom-b", baseURL: "http://localhost:1235/v1", key: "")
         settings.verifiedProviderFingerprints["fluid"] = "ignored-private-verification"
         settings.writes = []
@@ -115,11 +116,11 @@ final class SettingsStore: ObservableObject {
     static func catalogIncludesEveryEligibleProvider() {
         let settings = self.fixture()
         let options = settings.commandModeModelCatalog()
-        self.check(Set(options.map(\.providerID)) == Set(["openai", "anthropic", "custom-a", "custom-b"]), "Catalog includes all verified built-in and saved providers, excluding unverified and private providers")
-        self.check(options.filter { $0.providerID == "openai" }.map(\.modelID) == ["shared-model", "chat-beta"], "Unsupported, empty, and duplicate models do not appear")
+        self.check(Set(options.map(\.providerID)) == Set(["ollama", "lmstudio", "custom-a", "custom-b"]), "Catalog includes all verified built-in and saved providers, excluding unverified and private providers")
+        self.check(options.filter { $0.providerID == "ollama" }.map(\.modelID) == ["shared-model", "chat-beta"], "Unsupported, empty, and duplicate models do not appear")
         self.check(options.filter { $0.providerID == "custom-a" }.map(\.modelID) == ["shared-model", "custom-chat"], "Canonical configured models take precedence over stale alias and saved fallback lists")
         self.check(options.contains { $0.providerID == "custom-b" && $0.modelID == "friendly-id" && $0.displayName == "Friendly Display" }, "Saved custom model lists and existing display names are used when no fetched list exists")
-        self.check(options.contains { $0.providerID == "anthropic" && $0.modelID == "claude-sonnet-4-20250514" }, "Built-in fallback comes from the existing repository catalog")
+        self.check(options.contains { $0.providerID == "lmstudio" && $0.modelID == "local-chat" }, "Local provider uses its configured model catalog")
         let shared = options.filter { $0.modelID == "shared-model" }
         self.check(shared.count == 2 && Set(shared.map(\.id)).count == 2, "The same model on different providers has distinct row identities")
         self.check(Set(options.map(\.id)).count == options.count, "Custom provider aliases cannot duplicate options")
@@ -154,8 +155,8 @@ final class SettingsStore: ObservableObject {
         self.check(settings.selectCommandModeModel(option), "A verified catalog row can be selected while linked")
         self.check(settings.commandModeSelectedProviderID == "custom-a" && settings.commandModeSelectedModel == "custom-chat" && !settings.commandModeLinkedToGlobal, "Selection sets provider and model together, then uses Command Mode's local route")
         self.check(settings.effectiveCommandModeProviderID == "custom-a" && settings.effectiveCommandModeSelectedModel == "custom-chat", "The effective route resolves to the chosen pair")
-        self.check(settings.selectedProviderID == "openai" && settings.selectedModel == "global-model" && settings.selectedModelByProvider == ["openai": "global-model"], "Dictation and provider defaults stay unchanged")
-        self.check(settings.rewriteModeSelectedProviderID == "anthropic" && settings.rewriteModeSelectedModel == "rewrite-model", "Edit Mode stays unchanged")
+        self.check(settings.selectedProviderID == "ollama" && settings.selectedModel == "global-model" && settings.selectedModelByProvider == ["ollama": "global-model"], "Dictation and provider defaults stay unchanged")
+        self.check(settings.rewriteModeSelectedProviderID == "lmstudio" && settings.rewriteModeSelectedModel == "rewrite-model", "Edit Mode stays unchanged")
         self.check(settings.verifiedProviderFingerprints == fingerprints && settings.availableModelsByProvider == modelLists && settings.savedProviders == saved, "Selection never modifies verification or configured model lists")
         self.check(settings.writes == ["commandProvider", "commandModel"] && UserDefaults.standard.writes == ["CommandModeLinkedToGlobal"], "Only the three local Command Mode settings are written")
     }
@@ -167,7 +168,7 @@ final class SettingsStore: ObservableObject {
             switch change {
             case "unverified": settings.verifiedProviderFingerprints.removeValue(forKey: "custom:custom-a")
             case "key changed": settings.credentials["custom:custom-a"] = "replacement-key"
-            case "URL changed": settings.savedProviders = [.init(id: "custom-a", name: "Changed", baseURL: "https://changed.test/v1", models: [])]
+            case "URL changed": settings.savedProviders = [.init(id: "custom-a", name: "Changed", baseURL: "http://127.0.0.1:2346/v1", models: [])]
             case "model removed": settings.availableModelsByProvider["custom:custom-a"] = ["replacement-model"]
             default: settings.savedProviders = []
             }
@@ -178,7 +179,7 @@ final class SettingsStore: ObservableObject {
         }
         let settings = self.fixture()
         for model in ["text-embedding-3", "whisper-one", "missing", ""] {
-            let forged = CommandModelOption(providerID: "openai", providerName: "OpenAI", modelID: model, displayName: model)
+            let forged = CommandModelOption(providerID: "ollama", providerName: "OpenAI", modelID: model, displayName: model)
             self.check(!settings.selectCommandModeModel(forged), "Unsupported or invented model rows cannot select a route")
         }
         self.check(settings.writes.isEmpty && UserDefaults.standard.writes.isEmpty, "Invalid model attempts leave all persisted settings unchanged")
@@ -198,11 +199,11 @@ final class SettingsStore: ObservableObject {
         let settings = self.fixture()
         settings.savedProviders.append(.init(id: "keyless", name: "Verified keyless", baseURL: "https://keyless.test/v1", models: ["keyless-chat"]))
         self.verify(settings, id: "keyless", baseURL: "https://keyless.test/v1", key: "")
-        self.check(settings.commandModeModelCatalog().contains { $0.providerID == "keyless" }, "An already verified keyless remote server remains eligible")
+        self.check(!settings.commandModeModelCatalog().contains { $0.providerID == "keyless" }, "Even an already verified remote server must be blocked")
         settings.credentials["custom-a"] = "raw-key-takes-precedence"
         self.check(!settings.commandModeModelCatalog().contains { $0.providerID == "custom-a" }, "Verification uses the same exact-ID credential precedence as requests")
-        settings.savedProviders.append(.init(id: "custom:raw-only", name: "Canonical registration", baseURL: "https://raw.test/v1", models: ["raw-chat"]))
-        self.verify(settings, id: "custom:raw-only", baseURL: "https://raw.test/v1", key: "raw-secret")
+        settings.savedProviders.append(.init(id: "custom:raw-only", name: "Canonical registration", baseURL: "http://127.0.0.1:2347/v1", models: ["raw-chat"]))
+        self.verify(settings, id: "custom:raw-only", baseURL: "http://127.0.0.1:2347/v1", key: "raw-secret")
         settings.credentials["raw-only"] = settings.credentials.removeValue(forKey: "custom:raw-only")
         self.check(!settings.commandModeModelCatalog().contains { $0.providerID == "custom:raw-only" }, "Canonical registration cannot verify with a raw alias that getAPIKey would not send")
         settings.credentials["custom:raw-only"] = "raw-secret"

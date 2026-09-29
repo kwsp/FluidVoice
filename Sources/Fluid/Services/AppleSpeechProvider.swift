@@ -5,7 +5,7 @@ import Speech
 // MARK: - Apple Speech Provider
 
 /// A TranscriptionProvider that uses Apple's native SFSpeechRecognizer.
-/// This uses Apple's system speech path and lets macOS choose local or online recognition.
+/// Recognition must stay on device; unsupported locales fail closed.
 final class AppleSpeechProvider: TranscriptionProvider {
     var name: String { "Apple Speech (Legacy)" }
 
@@ -30,6 +30,9 @@ final class AppleSpeechProvider: TranscriptionProvider {
     // MARK: - Lifecycle
 
     func prepare(progressHandler: ((ModelPreparationProgress) -> Void)?) async throws {
+        guard self.updateRecognizerIfNeeded()?.supportsOnDeviceRecognition == true else {
+            throw NSError(domain: "AppleSpeechProvider", code: 7, userInfo: [NSLocalizedDescriptionKey: "On-device Apple Speech is unavailable for this language. Choose a downloaded STT model."])
+        }
         // 1. Request Authorization
         let status = await self.requestAuthorization()
 
@@ -78,10 +81,14 @@ final class AppleSpeechProvider: TranscriptionProvider {
             throw NSError(domain: "AppleSpeechProvider", code: 6, userInfo: [NSLocalizedDescriptionKey: "SFSpeechRecognizer is currently unavailable"])
         }
 
+        guard recognizer.supportsOnDeviceRecognition else {
+            throw NSError(domain: "AppleSpeechProvider", code: 7, userInfo: [NSLocalizedDescriptionKey: "On-device Apple Speech is unavailable for this language. Choose a downloaded STT model."])
+        }
+
         // 3. Create Request
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = false // We want the final result for this chunk
-        request.requiresOnDeviceRecognition = false // Allow macOS to use the best available Apple speech path.
+        request.requiresOnDeviceRecognition = true
         request.append(buffer)
         request.endAudio() // Signal that this buffer is the complete utterance for this request
 

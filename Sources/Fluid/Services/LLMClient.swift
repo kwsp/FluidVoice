@@ -70,10 +70,7 @@ final nonisolated class LLMClient: @unchecked Sendable {
     private let session: URLSession
 
     private init() {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = Self.defaultTimeoutSeconds
-        config.timeoutIntervalForResource = Self.defaultTimeoutSeconds * 2 // Allow extra time for resource loading
-        self.session = URLSession(configuration: config)
+        self.session = LocalOnlyNetworking.makeSession()
     }
 
     /// Test seam for deterministic transport fixtures; callers own the session configuration.
@@ -264,7 +261,7 @@ final nonisolated class LLMClient: @unchecked Sendable {
         }
 
         // Build URLRequest
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: try LocalOnlyNetworking.validatedURL(url))
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 

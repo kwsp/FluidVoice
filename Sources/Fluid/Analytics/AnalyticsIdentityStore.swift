@@ -13,15 +13,6 @@ final class AnalyticsIdentityStore {
 
     private init() {}
 
-    nonisolated var anonymousInstallID: String {
-        if let existing = defaults.string(forKey: Keys.anonymousInstallID), !existing.isEmpty {
-            return existing
-        }
-        let newID = UUID().uuidString
-        self.defaults.set(newID, forKey: Keys.anonymousInstallID)
-        return newID
-    }
-
     /// Returns whether this is the first recorded launch.
     @discardableResult
     nonisolated func ensureFirstOpenRecorded() -> Bool {

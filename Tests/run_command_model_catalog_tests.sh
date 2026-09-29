@@ -13,6 +13,7 @@ trap 'rm -rf "$task_test_dir"' EXIT
 sed '/^    \/\/ MARK: - Fetch Models from API/,$d' Sources/Fluid/Services/ModelRepository.swift > "$task_test_dir/ModelRepository.swift"
 echo '}' >> "$task_test_dir/ModelRepository.swift"
 xcrun swiftc -parse-as-library \
+    Sources/Fluid/Networking/LocalOnlyNetworking.swift \
     "$task_test_dir/ModelRepository.swift" \
     Sources/Fluid/UI/ModelDisplayName.swift \
     Sources/Fluid/Views/CommandModelCatalog.swift \

@@ -257,8 +257,8 @@ enum SettingsSearchIndex {
         ),
         .init(
             target: .analyticsPrivacy,
-            title: "Share Detailed Anonymous Analytics",
-            terms: ["Analytics Privacy what we collect telemetry data active use weekly opt out"]
+            title: "Telemetry disabled",
+            terms: ["Analytics Privacy telemetry disabled data local"]
         ),
 
         .init(target: .dictation, title: "Dictation", terms: ["typing transcription keyboard preferences"]),

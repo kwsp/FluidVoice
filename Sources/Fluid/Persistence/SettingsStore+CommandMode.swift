@@ -158,6 +158,7 @@ extension SettingsStore {
         guard let stored = self.verifiedProviderFingerprints[key] else { return false }
 
         let baseURL = self.commandModeProviderBaseURL(for: providerID)
+        guard LocalOnlyNetworking.allows(baseURL) else { return false }
         // Match getAPIKey exactly: the registered ID takes precedence, then its canonical key.
         let apiKey = apiKeys[providerID] ?? apiKeys[key] ?? ""
         return self.commandModeProviderFingerprint(baseURL: baseURL, apiKey: apiKey) == stored

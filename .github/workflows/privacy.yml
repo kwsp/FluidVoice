@@ -1,0 +1,15 @@
+name: Fork privacy guard
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 Tests/check_network_policy.py
+  loopback-transport:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 Tests/run_local_network_transport_tests.py

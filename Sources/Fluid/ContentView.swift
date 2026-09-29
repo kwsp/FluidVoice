@@ -1430,7 +1430,6 @@ struct ContentView: View {
 
             Section {
                 self.sidebarNavigationLink(.changelog, title: "Change logs", systemImage: "doc.text.magnifyingglass")
-                self.sidebarNavigationLink(.feedback, title: "Feedback", systemImage: "envelope.fill")
             } header: {
                 self.sidebarSectionHeader("Help")
             }

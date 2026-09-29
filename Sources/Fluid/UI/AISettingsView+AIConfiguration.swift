@@ -1139,7 +1139,7 @@ extension AIEnhancementSettingsView {
                                 .font(.fluidSystem(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
-                        TextField("https://api.yourprovider.com/v1", text: baseURLBinding)
+                        TextField("http://localhost:1234/v1", text: baseURLBinding)
                             .textFieldStyle(.roundedBorder)
                             .font(.fluidSystem(size: 13, design: .monospaced))
                     }
@@ -2641,7 +2641,7 @@ extension AIEnhancementSettingsView {
                             .font(.fluidSystem(size: 12, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
-                    TextField("https://api.yourprovider.com/v1", text: self.$viewModel.newProviderBaseURL)
+                    TextField("http://localhost:1234/v1", text: self.$viewModel.newProviderBaseURL)
                         .textFieldStyle(.roundedBorder)
                         .font(.fluidSystem(size: 13, design: .monospaced))
                 }

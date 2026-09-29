@@ -115,7 +115,7 @@ struct AddProviderSheet<Logo: View>: View {
                     FluidManagementGroup(title: "Connection details") {
                         if self.draft.providerID.isEmpty {
                             self.field("Name") { TextField("Custom Provider", text: self.$draft.name) }
-                            self.field("Server URL") { TextField("https://your-server.com/v1", text: self.$draft.baseURL) }
+                            self.field("Server URL") { TextField("http://localhost:1234/v1", text: self.$draft.baseURL) }
                         }
                         self.field(self.draft.requiresAPIKey ? "API key" : "API key · Optional") {
                             SecureField("Enter API key", text: self.$draft.apiKey)
@@ -125,7 +125,7 @@ struct AddProviderSheet<Logo: View>: View {
                         }
                     }
                     self.modelSection
-                    Label("Your current dictation setup stays unchanged.", systemImage: "info.circle")
+                    Label("Only servers on this Mac are allowed (localhost, 127.0.0.1, or [::1]).", systemImage: "info.circle")
                         .font(self.theme.typography.caption).foregroundStyle(self.theme.palette.secondaryText)
                 }
             }

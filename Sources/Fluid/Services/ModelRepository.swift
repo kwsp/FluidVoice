@@ -17,7 +17,7 @@ final class ModelRepository {
     /// All built-in provider IDs (not including custom/saved providers)
     static var builtInProviderIDs: [String] {
         var providers = [
-            "openai", "anthropic", "xai", "groq", "cerebras", "google", "openrouter", "ollama", "lmstudio",
+            "ollama", "lmstudio",
         ]
         if PrivateFeatures.privateAIProvider {
             providers.insert(PrivateAIProviderFeature.shared.providerID, at: 0)
@@ -33,20 +33,6 @@ final class ModelRepository {
         }
 
         switch providerID {
-        case "openai":
-            return ["gpt-4.1"]
-        case "anthropic":
-            return ["claude-sonnet-4-20250514"]
-        case "xai":
-            return ["grok-3-fast"]
-        case "groq":
-            return ["openai/gpt-oss-120b"]
-        case "cerebras":
-            return ["gpt-oss-120b"]
-        case "google":
-            return ["gemini-2.5-flash"]
-        case "openrouter":
-            return ["openai/gpt-oss-20b"]
         case "ollama", "lmstudio":
             // Local providers - models vary per user, they must add their own
             return []
@@ -75,20 +61,6 @@ final class ModelRepository {
     /// Returns the default base URL for a given provider ID.
     func defaultBaseURL(for providerID: String) -> String {
         switch providerID {
-        case "openai":
-            return "https://api.openai.com/v1"
-        case "anthropic":
-            return "https://api.anthropic.com/v1"
-        case "xai":
-            return "https://api.x.ai/v1"
-        case "groq":
-            return "https://api.groq.com/openai/v1"
-        case "cerebras":
-            return "https://api.cerebras.ai/v1"
-        case "google":
-            return "https://generativelanguage.googleapis.com/v1beta/openai"
-        case "openrouter":
-            return "https://openrouter.ai/api/v1"
         case "ollama":
             return "http://localhost:11434/v1"
         case "lmstudio":
@@ -152,29 +124,12 @@ final class ModelRepository {
 
     /// Check if a URL represents a local endpoint (localhost, local IP)
     func isLocalEndpoint(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString), let host = url.host else { return false }
-        let hostLower = host.lowercased()
-        if hostLower == "localhost" || hostLower == "127.0.0.1" { return true }
-        if hostLower.hasPrefix("127.") || hostLower.hasPrefix("10.") || hostLower.hasPrefix("192.168.") { return true }
-        if hostLower.hasPrefix("172.") {
-            let components = hostLower.split(separator: ".")
-            if components.count >= 2, let secondOctet = Int(components[1]), secondOctet >= 16 && secondOctet <= 31 {
-                return true
-            }
-        }
-        return false
+        LocalOnlyNetworking.allows(urlString)
     }
 
     /// Returns the list of built-in providers for UI pickers
     func builtInProvidersList() -> [(id: String, name: String)] {
         var list: [(id: String, name: String)] = [
-            ("openai", "OpenAI"),
-            ("anthropic", "Anthropic"),
-            ("xai", "xAI"),
-            ("groq", "Groq"),
-            ("cerebras", "Cerebras"),
-            ("google", "Google"),
-            ("openrouter", "OpenRouter"),
             ("ollama", "Ollama"),
             ("lmstudio", "LM Studio"),
         ]
@@ -260,7 +215,7 @@ final class ModelRepository {
             source: "ModelRepository"
         )
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: try LocalOnlyNetworking.validatedURL(url))
         request.httpMethod = "GET"
         request.timeoutInterval = 15
 
@@ -278,7 +233,7 @@ final class ModelRepository {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await LocalOnlyNetworking.session.data(for: request)
         } catch {
             let errorDetails = self.detailedNetworkError(error)
             DebugLogger.shared.error(

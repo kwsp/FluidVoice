@@ -224,11 +224,13 @@ benchmark_reports/
 icon_work/
 sample/
 .codex
-AGENTS.md
 builds/
 
 # Internal Markdown plans and reports stay local by default
 *.md
+!AGENTS.md
+!NETWORK_AUDIT.md
+!PRIVACY_CHECKLIST.md
 !README.md
 !CONTRIBUTING.md
 !.github/pull_request_template.md

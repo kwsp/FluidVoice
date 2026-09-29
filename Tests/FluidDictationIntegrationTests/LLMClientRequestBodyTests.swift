@@ -112,7 +112,7 @@ final class LLMClientRequestBodyTests: XCTestCase {
     // Regression: GPT-6 fell through to Chat Completions with legacy max_tokens (#1010).
     func testGPT6RequestsUseResponsesAndOutputTokenLimit() throws {
         for model in ["gpt-6-luna", "gpt-6-sol", "gpt-6-astra", "gpt-6-luna-2026-09-22"] {
-            for baseURL in ["https://api.openai.com/v1", "https://api.openai.com/v1/", "https://api.openai.com/v1/chat/completions"] {
+            for baseURL in ["http://localhost:1234/v1/responses"] {
                 let config = LLMClient.Config(
                     messages: [["role": "user", "content": "test"]],
                     model: model,
@@ -139,7 +139,7 @@ final class LLMClientRequestBodyTests: XCTestCase {
             let config = LLMClient.Config(
                 messages: [["role": "user", "content": "test"]],
                 model: model,
-                baseURL: "https://openrouter.ai/api/v1",
+                baseURL: "http://localhost:1234/api/v1",
                 apiKey: "",
                 streaming: false,
                 maxTokens: 50
@@ -506,7 +506,7 @@ final class LLMClientStreamingTests: XCTestCase {
         var config = LLMClient.Config(
             messages: [["role": "user", "content": "Show the working directory"]],
             model: "qwen3.5:9b",
-            baseURL: "https://issue-445.test/v1",
+            baseURL: "http://127.0.0.1/v1",
             apiKey: "",
             streaming: true
         )
@@ -528,7 +528,7 @@ final class LLMClientStreamingTests: XCTestCase {
         var config = LLMClient.Config(
             messages: [["role": "user", "content": "Show the working directory"]],
             model: "qwen-thinking",
-            baseURL: "https://issue-445.test/tag-parser/v1",
+            baseURL: "http://127.0.0.1/tag-parser/v1",
             apiKey: "",
             streaming: true
         )
@@ -551,7 +551,7 @@ final class LLMClientStreamingTests: XCTestCase {
         var config = LLMClient.Config(
             messages: [["role": "user", "content": "Keep UI responsive"]],
             model: "qwen-thinking",
-            baseURL: "https://issue-445.test/tag-parser/v1",
+            baseURL: "http://127.0.0.1/tag-parser/v1",
             apiKey: "",
             streaming: true
         )
@@ -616,7 +616,7 @@ private class Issue445StreamURLProtocol: URLProtocol {
     """#
 
     override class func canInit(with request: URLRequest) -> Bool {
-        request.url?.host == "issue-445.test"
+        request.url?.host == "127.0.0.1"
     }
 
     override class func canonicalRequest(for request: URLRequest) -> URLRequest {

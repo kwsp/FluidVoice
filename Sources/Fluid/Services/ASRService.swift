@@ -1099,8 +1099,7 @@ final class ASRService: ObservableObject {
             if #available(macOS 26.0, *) {
                 return self.getAppleSpeechAnalyzerProvider()
             } else {
-                // Fallback to legacy Apple Speech on older macOS
-                return self.getAppleSpeechProvider()
+                return UnavailableOnDeviceSpeechProvider()
             }
         case .appleSpeech:
             return self.getAppleSpeechProvider()
@@ -1229,7 +1228,7 @@ final class ASRService: ObservableObject {
             if #available(macOS 26.0, *) {
                 return AppleSpeechAnalyzerProvider()
             } else {
-                return AppleSpeechProvider()
+                return UnavailableOnDeviceSpeechProvider()
             }
         case .appleSpeech:
             return AppleSpeechProvider()
@@ -2399,7 +2398,7 @@ final class ASRService: ObservableObject {
                 let provider = self.getAppleSpeechAnalyzerProvider()
                 exists = await provider.refreshModelsExistOnDiskAsync()
             } else {
-                exists = self.getAppleSpeechProvider().modelsExistOnDisk()
+                exists = false
             }
         } else {
             exists = model.isInstalled

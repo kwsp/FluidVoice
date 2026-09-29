@@ -1503,18 +1503,10 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    /// Detailed anonymous analytics toggle (default: ON). The daily activity signal is always enabled.
-    /// Uses default-true semantics so existing installs upgrading to analytics do not default to OFF.
+    /// Compatibility with imported upstream settings; telemetry cannot be enabled.
     var shareDetailedAnalytics: Bool {
-        get {
-            let value = self.defaults.object(forKey: Keys.shareAnonymousAnalytics)
-            if value == nil { return true }
-            return self.defaults.bool(forKey: Keys.shareAnonymousAnalytics)
-        }
-        set {
-            objectWillChange.send()
-            self.defaults.set(newValue, forKey: Keys.shareAnonymousAnalytics)
-        }
+        get { false }
+        set { self.defaults.set(false, forKey: Keys.shareAnonymousAnalytics) }
     }
 
     var privateAIInterestCaptured: Bool {
