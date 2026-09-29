@@ -1944,8 +1944,8 @@ extension DictationE2ETests {
             ]
         ) {
             let settings = SettingsStore.shared
-            settings.selectedProviderID = "openai"
-            settings.selectedModelByProvider = ["openai": "gpt-4.1", "ollama": "test-local-model"]
+            settings.selectedProviderID = "lmstudio"
+            settings.selectedModelByProvider = ["lmstudio": "global-local-model", "ollama": "test-local-model"]
             settings.verifiedProviderFingerprints = [
                 "ollama": DictationAIPostProcessingGate.providerFingerprint(
                     baseURL: ModelRepository.shared.defaultBaseURL(for: "ollama"),
@@ -1966,11 +1966,11 @@ extension DictationE2ETests {
             XCTAssertEqual(route.providerID, "ollama")
             XCTAssertEqual(route.providerKey, "ollama")
             XCTAssertEqual(route.model, "test-local-model")
-            XCTAssertEqual(settings.selectedProviderID, "openai")
-            XCTAssertEqual(settings.selectedModelByProvider["openai"], "gpt-4.1")
+            XCTAssertEqual(settings.selectedProviderID, "lmstudio")
+            XCTAssertEqual(settings.selectedModelByProvider["lmstudio"], "global-local-model")
 
             XCTAssertTrue(DictationAIPostProcessingGate.isConfigured(for: .primary))
-            XCTAssertEqual(settings.selectedProviderID, "openai")
+            XCTAssertEqual(settings.selectedProviderID, "lmstudio")
         }
     }
 
@@ -2024,12 +2024,12 @@ extension DictationE2ETests {
             let lmStudioModel = "local-cleanup-model"
             let globalProviderID = PrivateFeatures.privateAIProvider
                 ? PrivateAIProviderFeature.shared.providerID
-                : "openai"
+                : "ollama"
             settings.selectedProviderID = globalProviderID
             settings.selectedModelByProvider = [
                 globalProviderID: PrivateFeatures.privateAIProvider
                     ? PrivateAIIntegrationService.configuredModelID
-                    : "gpt-4.1",
+                    : "global-local-model",
                 "lmstudio": lmStudioModel,
             ]
             settings.setDictationPromptSelection(.default, for: .primary)
@@ -2141,8 +2141,8 @@ extension DictationE2ETests {
                 ),
             ]
             settings.dictationPromptRoutingScope = .allApps
-            settings.selectedProviderID = "openai"
-            settings.selectedModelByProvider = ["openai": "gpt-4.1", "ollama": "editor-model"]
+            settings.selectedProviderID = "lmstudio"
+            settings.selectedModelByProvider = ["lmstudio": "global-local-model", "ollama": "editor-model"]
             settings.verifiedProviderFingerprints = [
                 "ollama": DictationAIPostProcessingGate.providerFingerprint(
                     baseURL: ModelRepository.shared.defaultBaseURL(for: "ollama"),
@@ -2152,8 +2152,8 @@ extension DictationE2ETests {
             settings.setDictationPromptSelection(.default, for: .primary)
             settings.setDictationPromptConfiguration(
                 SettingsStore.DictationPromptConfiguration(
-                    providerID: "openai",
-                    modelName: "gpt-4.1"
+                    providerID: "lmstudio",
+                    modelName: "global-local-model"
                 ),
                 for: .default
             )
@@ -2173,7 +2173,7 @@ extension DictationE2ETests {
 
             XCTAssertEqual(route.providerID, "ollama")
             XCTAssertEqual(route.model, "editor-model")
-            XCTAssertEqual(settings.selectedProviderID, "openai")
+            XCTAssertEqual(settings.selectedProviderID, "lmstudio")
             XCTAssertTrue(DictationAIPostProcessingGate.isConfigured(for: .primary, appBundleID: appBundleID))
         }
     }
@@ -2197,8 +2197,8 @@ extension DictationE2ETests {
         ) {
             let settings = SettingsStore.shared
             settings.dictationPromptRoutingScope = .selectedAppsOnly
-            settings.selectedProviderID = "openai"
-            settings.selectedModelByProvider = ["openai": "gpt-4.1"]
+            settings.selectedProviderID = "ollama"
+            settings.selectedModelByProvider = ["ollama": "global-local-model"]
             settings.setDictationPromptSelection(.default, for: .primary)
 
             let route = DictationProviderRoute.resolveForPostProcessing(
@@ -2206,8 +2206,8 @@ extension DictationE2ETests {
                 dictationSlot: .primary
             )
 
-            XCTAssertEqual(route.providerID, "openai")
-            XCTAssertEqual(route.model, "gpt-4.1")
+            XCTAssertEqual(route.providerID, "ollama")
+            XCTAssertEqual(route.model, "global-local-model")
         }
     }
 
@@ -2324,9 +2324,9 @@ extension DictationE2ETests {
             let settings = SettingsStore.shared
             let privateProviderID = PrivateAIProviderFeature.shared.providerID
             let privateModelID = PrivateAIProviderFeature.shared.defaultModelID
-            settings.selectedProviderID = "openai"
+            settings.selectedProviderID = "ollama"
             settings.selectedModelByProvider = [
-                "openai": "gpt-4.1",
+                "ollama": "global-local-model",
                 privateProviderID: privateModelID,
             ]
             settings.verifiedProviderFingerprints = [
@@ -2342,16 +2342,16 @@ extension DictationE2ETests {
                 dictationSlot: .primary
             )
 
-            XCTAssertEqual(settings.selectedProviderID, "openai")
-            XCTAssertEqual(route.providerID, "openai")
-            XCTAssertEqual(route.model, "gpt-4.1")
+            XCTAssertEqual(settings.selectedProviderID, "ollama")
+            XCTAssertEqual(route.providerID, "ollama")
+            XCTAssertEqual(route.model, "global-local-model")
         }
     }
 
     func testOpeningProviderConfigurationDoesNotChangeDefaultProvider() {
         self.withRestoredDefaults(keys: [self.selectedProviderIDKey]) {
             let settings = SettingsStore.shared
-            settings.selectedProviderID = "openai"
+            settings.selectedProviderID = "ollama"
             let viewModel = AIEnhancementSettingsViewModel(
                 settings: settings,
                 menuBarManager: MenuBarManager(),
@@ -2361,17 +2361,17 @@ extension DictationE2ETests {
             viewModel.configureProvider("lmstudio")
             viewModel.saveSavedProviders()
             viewModel.cachedVerifiedProviderItems = [
-                .init(id: "openai", name: "OpenAI", isBuiltIn: true),
+                .init(id: "ollama", name: "Ollama", isBuiltIn: true),
                 .init(id: "lmstudio", name: "LM Studio", isBuiltIn: true),
             ]
 
             XCTAssertEqual(viewModel.selectedProviderID, "lmstudio")
-            XCTAssertEqual(settings.selectedProviderID, "openai")
-            XCTAssertEqual(viewModel.defaultVerifiedPromptProviderID(), "openai")
+            XCTAssertEqual(settings.selectedProviderID, "ollama")
+            XCTAssertEqual(viewModel.defaultVerifiedPromptProviderID(), "ollama")
 
             viewModel.finishConfiguringProvider()
-            XCTAssertEqual(viewModel.selectedProviderID, "openai")
-            XCTAssertEqual(settings.selectedProviderID, "openai")
+            XCTAssertEqual(viewModel.selectedProviderID, "ollama")
+            XCTAssertEqual(settings.selectedProviderID, "ollama")
         }
     }
 
@@ -2457,7 +2457,7 @@ extension DictationE2ETests {
     func testCreatingAndDeletingProviderDraftPreservesDefaultProvider() {
         self.withProviderSettingsRestored {
             let settings = SettingsStore.shared
-            settings.selectedProviderID = "openai"
+            settings.selectedProviderID = "ollama"
             let viewModel = AIEnhancementSettingsViewModel(
                 settings: settings,
                 menuBarManager: MenuBarManager(),
@@ -2465,11 +2465,11 @@ extension DictationE2ETests {
             )
 
             XCTAssertNotNil(viewModel.createDraftProvider(named: "Draft"))
-            XCTAssertEqual(settings.selectedProviderID, "openai")
+            XCTAssertEqual(settings.selectedProviderID, "ollama")
 
             viewModel.deleteCurrentProvider()
-            XCTAssertEqual(viewModel.selectedProviderID, "openai")
-            XCTAssertEqual(settings.selectedProviderID, "openai")
+            XCTAssertEqual(viewModel.selectedProviderID, "ollama")
+            XCTAssertEqual(settings.selectedProviderID, "ollama")
         }
     }
 
