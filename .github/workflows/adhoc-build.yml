@@ -4,21 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - 'Sources/**'
-      - 'Vendor/**'
-      - 'Fluid.xcodeproj/**'
-      - 'Info.plist'
-      - 'Fluid.entitlements'
-      - 'Package.*'
-      - 'build.sh'
-      - 'tools/build_adhoc.sh'
-      - 'Tests/check_network_policy.py'
-      - 'Tests/network_surface.json'
-      - '.github/workflows/adhoc-build.yml'
 
 permissions:
   contents: read
+
+# Serialize builds and publication so an older run cannot overwrite a newer release.
+concurrency:
+  group: rolling-nightly-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -48,3 +41,55 @@ jobs:
         run: |
           echo '### Download FluidVoice' >> "$GITHUB_STEP_SUMMARY"
           echo 'Open the artifact below this run summary. Extract its outer ZIP, then the app ZIP inside. This is an ad-hoc signed build, without Developer ID notarization.' >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Publish rolling nightly
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified build
+        uses: actions/download-artifact@v4
+        with:
+          pattern: FluidVoice-Local-*-${{ github.sha }}
+          merge-multiple: true
+          path: builds
+      - name: Publish latest successful main build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd builds
+          sha256sum --check SHA256SUMS
+
+          # A commit arriving during this build will get its own run. Never publish
+          # a stale build over the rolling release while that newer run is pending.
+          head_sha="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "$head_sha" != "$GITHUB_SHA" ]]; then
+            echo 'Newer main commit exists; retaining this run artifact but skipping release publication.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          cat > release-notes.md <<EOF
+          Automatically built from [$GITHUB_SHA](https://github.com/$GH_REPO/commit/$GITHUB_SHA).
+
+          Download the app ZIP below and extract it. This is an Apple Silicon, ad-hoc signed build, without Developer ID notarization. See README.txt for installation instructions.
+
+          This rolling prerelease is replaced after successful builds of main. If a build fails, the previous downloadable build remains available.
+
+          [Build log](https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID)
+          EOF
+
+          if gh release view nightly >/dev/null 2>&1; then
+            gh release upload nightly ./*.app.zip SHA256SUMS build-info.txt README.txt --clobber
+            gh api --method PATCH "repos/$GH_REPO/git/refs/tags/nightly"               -f sha="$GITHUB_SHA" -F force=true --silent
+            gh release edit nightly --title 'Nightly — latest main build'               --notes-file release-notes.md --prerelease --latest=false
+          else
+            gh release create nightly ./*.app.zip SHA256SUMS build-info.txt README.txt               --target "$GITHUB_SHA" --title 'Nightly — latest main build'               --notes-file release-notes.md --prerelease --latest=false
+          fi
+          echo "Download: https://github.com/$GH_REPO/releases/tag/nightly" >> "$GITHUB_STEP_SUMMARY"

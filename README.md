@@ -197,7 +197,9 @@ For a certificate-free, ad-hoc signed Release build of this fork:
 
 The app is at `DerivedData/Build/Products/Release/FluidVoice.app`; a verified app ZIP, SHA-256 checksum, and installation notes are in `builds/`. This build uses the separate bundle ID `com.kwsp.FluidVoice`. It is not notarized, so downloaded builds may need **System Settings → Privacy & Security → Open Anyway**, and ad-hoc rebuilds may need permissions granted again.
 
-On GitHub, select **Actions → Downloadable ad-hoc build → Run workflow**. After success, download the artifact at the bottom of the run summary. The workflow also runs on relevant pushes to `main`. It needs no signing secrets and retains artifacts for 30 days.
+Download the latest successful build from the [rolling nightly release](https://github.com/kwsp/FluidVoice/releases/tag/nightly). Every push to `main` builds the app and replaces this prerelease’s app ZIP, checksum, build metadata, and installation notes after successful signing/package verification. Failed builds leave the previous download available. The `nightly` tag moves to the published commit; release notes identify that commit.
+
+You can also select **Actions → Downloadable ad-hoc build → Run workflow**. Each successful build keeps a separate Actions artifact for 30 days. Manual runs on branches other than `main` create artifacts only. No signing secrets are needed.
 
 ```bash
 git clone https://github.com/altic-dev/FluidVoice.git
