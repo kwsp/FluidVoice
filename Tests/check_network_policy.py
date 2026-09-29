@@ -43,11 +43,16 @@ def assert_invariants():
     assert "POSTHOG_" not in source("Info.plist"), "Telemetry bundle configuration returned"
     analytics = source("Sources/Fluid/Analytics/AnalyticsService.swift")
     assert not re.search(r"URLSession|URLRequest|AnalyticsCore|AnalyticsDatabase\(", analytics), "Telemetry collector/transport returned"
+    updater = source("Sources/Fluid/Services/SimpleUpdater.swift")
+    assert not re.search(r"URLSession|URLRequest|HTTPClient|downloadTask|dataTask", updater), "Updater transport returned"
+    delegate = source("Sources/Fluid/AppDelegate.swift")
+    assert "schedulePeriodicUpdateChecks" not in delegate, "Periodic update checks returned"
+    assert "checkForUpdatesAutomatically" not in delegate, "Startup update checks returned"
     apple = source("Sources/Fluid/Services/AppleSpeechProvider.swift")
     assert "requiresOnDeviceRecognition = true" in apple
     assert "requiresOnDeviceRecognition = false" not in apple
     assert "supportsOnDeviceRecognition" in apple
-    for path in ["Services/FeedbackClient.swift", "Services/TranscriptionFeedbackReporter.swift", "Networking/AIProvider.swift", "Networking/FunctionCallingProvider.swift"]:
+    for path in ["UI/FeedbackView.swift", "Services/FeedbackClient.swift", "Services/TranscriptionFeedbackReporter.swift", "Networking/AIProvider.swift", "Networking/FunctionCallingProvider.swift"]:
         assert not (ROOT / "Sources/Fluid" / path).exists(), f"Removed upload client returned: {path}"
     for path in (ROOT / "Sources").rglob("*.swift"):
         assert "altic.dev/api/fluid/" not in path.read_text(), f"Submission endpoint returned: {path}"

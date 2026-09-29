@@ -2,7 +2,7 @@
 
 - This fork aims to keep user data completely local. STT model downloads are allowed. Do not add outbound telemetry, transcript/audio uploads, or remote inference without an explicit change to this policy.
 - See `NETWORK_AUDIT.md` for the initial static audit of existing network paths. The audit documents issues; it does not mean they have been removed.
-- Track remediation and upstream-rebase review in `PRIVACY_CHECKLIST.md`. Run `python3 Tests/check_network_policy.py` after upstream changes; review new network paths before updating its baseline. AI requests must use `LocalOnlyNetworking`, including provider checks and model catalogs. Model-download and updater transports are separately inventoried.
+- Track remediation and upstream-rebase review in `PRIVACY_CHECKLIST.md`. Run `python3 Tests/check_network_policy.py` after upstream changes; review new network paths before updating its baseline. AI requests must use `LocalOnlyNetworking`, including provider checks and model catalogs. Model-download transports are separately inventoried. Upstream update checks, downloads, and release-note fetching are disabled; do not restore them during rebases.
 
 # Local build notes
 

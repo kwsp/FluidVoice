@@ -1814,8 +1814,6 @@ struct ContentView: View {
             return AnyView(CustomDictionaryView(revealTarget: self.$appSearchRevealTarget))
         case .stats:
             return AnyView(self.statsView)
-        case .feedback:
-            return AnyView(FeedbackView())
         case .changelog:
             return AnyView(ChangelogView())
         case .commandMode:

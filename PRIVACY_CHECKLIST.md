@@ -7,7 +7,7 @@ Policy: user data stays on this Mac. Downloading STT models is allowed. Initial 
 - [x] Remove PostHog request transport, background flush/retry loop, bundle key/host, and installation-ID generation.
 - [x] Replace AnalyticsService with an inert compatibility facade. Upstream recording hooks cannot collect or upload anything. Retain local first-launch bookkeeping used by onboarding; legacy database code is only exercised by regression fixtures, not the runtime service.
 - [x] Delete the legacy Analytics directory (including database sidecars) and stored installation ID at startup. Retry cleanup on subsequent launches if deletion fails. Force the detailed preference off even when imported settings contain true.
-- [x] Remove feedback and transcript-example clients, forms, send buttons, and history reporting actions. Keep a static disabled view only for restored feedback navigation state.
+- [x] Remove feedback and transcript-example clients, forms, send buttons, and history reporting actions. Remove the leftover disabled feedback page and navigation destination as well.
 - [x] Require `supportsOnDeviceRecognition` and `requiresOnDeviceRecognition = true` for legacy Apple Speech. Unsupported languages fail instead of using online recognition.
 - [x] Replace pre-macOS-26 Analyzer fallback with an unavailable provider that returns an actionable error.
 - [x] Restrict AI inference, model-list discovery, and connection tests to canonical loopback addresses. Normalize localhost to 127.0.0.1, reject credentials embedded in URLs, LAN/public hosts, alternate IP spellings, and invalid ports.
@@ -29,7 +29,7 @@ Policy: user data stays on this Mac. Downloading STT models is allowed. Initial 
 ## Deferred, still possible egress
 
 - [ ] Item 5: restrict/remove Command mode subprocess networking. It still runs arbitrary shell commands; loopback-only inference does not constrain those commands.
-- [ ] Item 6: disable/retarget upstream automatic updater and changelog requests. They still contact GitHub; updating from upstream could replace fork protections.
+- [x] Item 6: remove startup/hourly update checks, update controls, and remote changelog loading. Updater discovery/install entry points fail closed; their network transports are removed. Imported settings cannot re-enable checks. The unused upstream AppUpdater dependency still needs provenance/dependency cleanup.
 - [ ] Item 7: isolate model-download transport with explicit artifact/CDN policy and validate offline operation.
 - [ ] Review local API authentication and explicit loopback bind; it remains disabled by default and filters accepted peers.
 - [ ] Audit precompiled dependency behavior/provenance and any future private AI implementation. A local AI server can itself proxy to cloud services; configure it for on-device inference.
@@ -46,6 +46,12 @@ Policy: user data stays on this Mac. Downloading STT models is allowed. Initial 
 7. Commit the reviewed inventory, tests, checklist, and code together. Do not claim complete local-only operation while deferred egress paths remain.
 
 ## Work log
+
+- 2026-09-29: removed the remaining disabled FeedbackView and feedback navigation case. Confirmed no Send Example implementation remains; feedback/example upload clients were deleted in the initial remediation. Updated page-presentation coverage and the rebase guard. Final unsigned build passed; page-presentation harness passed 12,661 checks; privacy inventory and whitespace checks passed.
+
+- 2026-09-29: removed upstream updater transport and automatic scheduling; replaced update settings/changelog with fork-build guidance and removed update/rollback menu controls. Retained disabled updater entry points for rebase compatibility and local rollback helpers; no UI offers rollback to an upstream build.
+- Removed the model-card liquid animation timeline and both talking-visualizer animation timers. Visualizers now react to audio-level/threshold changes; static settings cards no longer redraw continuously. Other recording/processing animations and the active-app tracker are unchanged.
+- [x] Validation: unsigned Debug build passed; 36 integration tests passed (9 privacy/updater, 27 LLM request/streaming). Reviewed network inventory and whitespace checks passed. Idle CPU reduction still requires measurement in the running app.
 
 - 2026-09-29: added certificate-free ad-hoc Release packaging and a downloadable GitHub Actions artifact workflow. Signing/package verification is local; CI uploads only the built app, checksum, build metadata, and installation notes. STT models and user recordings/settings are not bundled.
 - Validation: `./build.sh adhoc` passed on arm64 with Xcode 27. The app and ZIP-extracted copy passed `codesign --verify --deep --strict`; microphone entitlement, architecture, and embedded runtime dependencies were checked. Shell/YAML syntax and the network inventory passed. The GitHub-hosted workflow has not been run yet.

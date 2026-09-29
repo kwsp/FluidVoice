@@ -3,6 +3,7 @@ import Foundation
 import PromiseKit
 
 enum SimpleUpdateError: Error, LocalizedError {
+    case disabledInFork
     case invalidURL
     case invalidResponse
     case jsonDecoding
@@ -18,6 +19,7 @@ enum SimpleUpdateError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .disabledInFork: return "In-app updates are disabled in this fork. Install a new fork build manually."
         case .invalidURL: return "Invalid URL."
         case .invalidResponse: return "Invalid HTTP response from GitHub."
         case .jsonDecoding: return "The data couldn’t be read because it isn’t in the correct format."
@@ -337,137 +339,9 @@ final class SimpleUpdater {
         repo: String,
         includePrerelease: Bool = false
     ) async throws {
-        guard self.updateOperationGate.begin() else {
-            throw SimpleUpdateError.updateAlreadyInProgress
-        }
-
-        var shouldKeepOperationActive = false
-        defer {
-            if !shouldKeepOperationActive {
-                self.resetUpdateOperation()
-            }
-        }
-
-        let releases = try await self.fetchReleases(owner: owner, repo: repo)
-
-        guard let latest = self.selectLatestRelease(
-            from: releases,
-            includePrerelease: includePrerelease
-        ) else {
-            throw SimpleUpdateError.noSuitableRelease
-        }
-
-        let currentVersionString = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
-        let current = self.parseSemanticVersion(currentVersionString) ?? SemanticVersion(
-            major: 0,
-            minor: 0,
-            patch: 0,
-            prerelease: []
-        )
-        let latestTag = latest.tag_name
-        guard let latestVersion = self.parseSemanticVersion(latestTag) else {
-            throw SimpleUpdateError.noSuitableRelease
-        }
-
-        let currentBundle = Bundle.main
-        // up to date
-        if !(latestVersion > current) {
-            throw PMKError.cancelled // mimic AppUpdater semantics for up-to-date
-        }
-
-        // Find asset matching: "{repo-lower}-{version-from-tag}.*" and zip preferred
-        let rawVersion = latestTag.hasPrefix("v") ? String(latestTag.dropFirst()) : latestTag
-        let prefix = "\(repo.lowercased())-\(rawVersion)"
-        let asset = latest.assets.first { asset in
-            let base = (asset.name as NSString).deletingPathExtension.lowercased()
-            return (base == prefix) &&
-                (asset.content_type == "application/zip" || asset.content_type == "application/x-zip-compressed")
-        } ?? latest.assets.first { asset in
-            let base = (asset.name as NSString).deletingPathExtension.lowercased()
-            return base == prefix
-        }
-
-        guard let asset = asset else { throw SimpleUpdateError.noAsset }
-
-        self.showUpdateInstallStatus(version: rawVersion)
-
-        let tempDir = try FileManager.default.url(
-            for: .itemReplacementDirectory,
-            in: .userDomainMask,
-            appropriateFor: Bundle.main.bundleURL,
-            create: true
-        )
-        let downloadURL = tempDir.appendingPathComponent(asset.browser_download_url.lastPathComponent)
-
-        do {
-            let (tmpFile, _) = try await URLSession.shared.download(from: asset.browser_download_url)
-            try FileManager.default.moveItem(at: tmpFile, to: downloadURL)
-        } catch {
-            throw SimpleUpdateError.downloadFailed
-        }
-
-        // unzip
-        let extractedBundleURL: URL
-        do {
-            extractedBundleURL = try await self.unzip(at: downloadURL)
-        } catch {
-            throw SimpleUpdateError.unzipFailed
-        }
-
-        guard extractedBundleURL.pathExtension == "app" else {
-            throw SimpleUpdateError.notAnAppBundle
-        }
-
-        // Validate code signing identity matches (skip in DEBUG for easier local testing)
-        #if DEBUG
-        // In Debug builds the local app is typically signed with a development cert, while
-        // releases are signed with Developer ID. Skip strict check to enable testing.
-        _ = currentBundle // keep reference used in Release path
-        #else
-        let curID = try await codeSigningIdentity(for: currentBundle.bundleURL)
-        let newID = try await codeSigningIdentity(for: extractedBundleURL)
-
-        func teamID(from identity: String) -> String? {
-            // Handle TeamIdentifier= format first
-            if identity.hasPrefix("TeamIdentifier=") {
-                return String(identity.dropFirst("TeamIdentifier=".count))
-            }
-
-            // Handle Authority= format (extract team ID from parentheses)
-            guard let l = identity.lastIndex(of: "("), let r = identity.lastIndex(of: ")"), l < r else { return nil }
-            let inside = identity[identity.index(after: l)..<r]
-            return String(inside)
-        }
-
-        // Allow update if:
-        // - full identity matches OR
-        // - Team IDs match OR
-        // - both current and new Team IDs are in the allowedTeamIDs set
-        // This enables dev→prod updates across your two known Team IDs.
-        let sameIdentity = curID == newID
-        let curTeam = teamID(from: curID)
-        let newTeam = teamID(from: newID)
-        let sameTeam = (curTeam != nil && curTeam == newTeam)
-        let bothAllowed: Bool = {
-            guard let ct = curTeam, let nt = newTeam else { return false }
-            return self.allowedTeamIDs.contains(ct) && self.allowedTeamIDs.contains(nt)
-        }()
-
-        guard sameIdentity || sameTeam || bothAllowed else {
-            DebugLogger.shared.error("SimpleUpdater: Code-sign mismatch. Current=\(curID) New=\(newID)", source: "SimpleUpdater")
-            DebugLogger.shared.error("SimpleUpdater: Current Team=\(curTeam ?? "none") New Team=\(newTeam ?? "none")", source: "SimpleUpdater")
-            throw SimpleUpdateError.codesignMismatch
-        }
-        #endif
-
-        self.createRollbackBackup(beforeRollback: false)
-
-        // Replace and relaunch
-        try self.performSwapAndRelaunch(installedAppURL: currentBundle.bundleURL, downloadedAppURL: extractedBundleURL)
-        shouldKeepOperationActive = true
+        // Retain the entry point for upstream merges, but never download or install upstream builds.
+        throw SimpleUpdateError.disabledInFork
     }
-
-    // MARK: - Helpers
 
     private func showUpdateInstallStatus(version: String) {
         guard self.updateStatusWindow == nil else { return }
@@ -533,20 +407,8 @@ final class SimpleUpdater {
     }
 
     private func fetchReleases(owner: String, repo: String) async throws -> [GHRelease] {
-        guard let releasesURL = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/releases") else {
-            throw SimpleUpdateError.invalidURL
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: releasesURL)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw SimpleUpdateError.invalidResponse
-        }
-
-        do {
-            return try JSONDecoder().decode([GHRelease].self, from: data)
-        } catch {
-            throw SimpleUpdateError.jsonDecoding
-        }
+        // All release discovery and changelog callers fail closed without a transport.
+        throw SimpleUpdateError.disabledInFork
     }
 
     private func selectLatestRelease(from releases: [GHRelease], includePrerelease: Bool) -> GHRelease? {

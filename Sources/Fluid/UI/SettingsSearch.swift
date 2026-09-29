@@ -252,8 +252,8 @@ enum SettingsSearchIndex {
         ),
         .init(
             target: .automaticUpdates,
-            title: "Automatic Updates",
-            terms: ["beta releases check for updates release notes rollback previous builds version"]
+            title: "Fork Updates",
+            terms: ["updates disabled manual fork builds version"]
         ),
         .init(
             target: .analyticsPrivacy,

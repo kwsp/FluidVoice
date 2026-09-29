@@ -98,12 +98,6 @@
   "Sources/Fluid/Services/Meeting/MeetingStage05EvidenceAutorun.swift": {
     "guard let executableURL = Bundle.main.executableURL.flatMap(Self.absoluteRegularFile),": 1
   },
-  "Sources/Fluid/Services/MenuBarManager.swift": {
-    "NSWorkspace.shared.open(options[index].url)": 1,
-    "NSWorkspace.shared.open(url)": 2,
-    "guard let url = URL(string: \"https://github.com/altic-dev/Fluid-oss/issues/new/choose\") else { return }": 1,
-    "guard let url = URL(string: \"https://github.com/altic-dev/Fluid-oss/releases\") else { return }": 1
-  },
   "Sources/Fluid/Services/ModelRepository.swift": {
     "(data, response) = try await LocalOnlyNetworking.session.data(for: request)": 1,
     "request.httpMethod = \"GET\"": 1,
@@ -122,9 +116,6 @@
   },
   "Sources/Fluid/Services/SimpleUpdater.swift": {
     "NSWorkspace.shared.openApplication(at: finalAppURL, configuration: configuration) { _, error in": 1,
-    "guard let releasesURL = URL(string: \"https://api.github.com/repos/\\(owner)/\\(repo)/releases\") else {": 1,
-    "let (data, response) = try await URLSession.shared.data(from: releasesURL)": 1,
-    "let (tmpFile, _) = try await URLSession.shared.download(from: asset.browser_download_url)": 1,
     "let fallbackReleasesURL = URL(string: \"https://github.com/\\(owner)/\\(repo)/releases\")": 1,
     "let fallbackTagURL = URL(string: \"https://github.com/\\(owner)/\\(repo)/releases/tag/\\(release.tag_name)\")": 1,
     "let proc = Process()": 2
@@ -161,21 +152,11 @@
     "TextField(\"http://localhost:1234/v1\", text: baseURLBinding)": 1,
     "TextField(\"http://localhost:1234/v1\", text: self.$viewModel.newProviderBaseURL)": 1
   },
-  "Sources/Fluid/UI/ChangelogView.swift": {
-    "if let url = URL(string: \"https://github.com/\\(self.owner)/\\(self.repo)/releases\") {": 1
-  },
   "Sources/Fluid/UI/MeetingTranscriptionView.swift": {
     "NSWorkspace.shared.open(url)": 1
   },
   "Sources/Fluid/UI/PermissionDragGuide.swift": {
     "NSWorkspace.shared.open(settingsPaneURL)": 1
-  },
-  "Sources/Fluid/UI/SettingsView.swift": {
-    "NSWorkspace.shared.open(options[index].url)": 1,
-    "NSWorkspace.shared.open(url)": 3,
-    "guard let url = URL(string: \"https://github.com/altic-dev/Fluid-oss/issues/new/choose\") else { return }": 1,
-    "guard let url = URL(string: \"https://github.com/altic-dev/Fluid-oss/releases\") else { return }": 1,
-    "if let url = URL(string: \"https://github.com/altic-dev/Fluid-oss/releases\") {": 1
   },
   "Sources/Fluid/UI/StatsShareCard.swift": {
     "ShareLink(": 1

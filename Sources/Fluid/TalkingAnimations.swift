@@ -125,11 +125,6 @@ struct SpokenlyWaveform: View {
     @State private var barHeights: [CGFloat] = []
     @State private var barOpacities: [Double] = []
     @State private var animationPhases: [Double] = []
-    @State private var animationTrigger: Int = 0
-    @State private var lastUpdateTime: TimeInterval = 0
-    @State private var isViewVisible: Bool = true
-
-    private let animationTimer = Timer.publish(every: 0.033, on: .main, in: .common).autoconnect() // 30 FPS base timer - safer for CoreML concurrency
 
     var body: some View {
         HStack(spacing: self.config.barSpacing) {
@@ -146,16 +141,10 @@ struct SpokenlyWaveform: View {
         .frame(width: self.config.containerWidth, height: self.config.containerHeight)
         .onAppear {
             self.initializeBars()
-            self.isViewVisible = true
+            self.updateBars()
         }
-        .onDisappear {
-            self.isViewVisible = false
-        }
-        .onReceive(self.animationTimer) { _ in
-            if self.isViewVisible {
-                self.updateBars()
-            }
-        }
+        .onChange(of: self.audioLevel) { _, _ in self.updateBars() }
+        .onChange(of: self.config.noiseThreshold) { _, _ in self.updateBars() }
     }
 
     private func initializeBars() {
@@ -166,12 +155,6 @@ struct SpokenlyWaveform: View {
 
     private func updateBars() {
         let currentTime = Date().timeIntervalSince1970
-
-        // Adaptive frame limiting - reduce rate during active processing to prevent CoreML conflicts
-        let targetFPS: Double = self.isActive ? 30.0 : 20.0 // Lower FPS to reduce state update conflicts
-        let frameTime = 1.0 / targetFPS
-        if currentTime - self.lastUpdateTime < frameTime { return }
-        self.lastUpdateTime = currentTime
 
         // Safety check
         guard self.barHeights.count == self.config.barCount, self.barOpacities.count == self.config.barCount else { return }
@@ -268,11 +251,6 @@ struct PremiumTalkingParticle: View {
     @State private var pulseScale: CGFloat = 1.0
     @State private var rotationAngle: Double = 0
     @State private var randomOffset: Double = .random(in: 0...2 * Double.pi)
-    @State private var animationTrigger: Int = 0
-    @State private var lastParticleUpdateTime: TimeInterval = 0
-    @State private var isParticleVisible: Bool = true
-
-    private let particleTimer = Timer.publish(every: 0.033, on: .main, in: .common).autoconnect() // 30 FPS
 
     private var isActive: Bool {
         self.audioLevel > self.config.noiseThreshold
@@ -356,35 +334,15 @@ struct PremiumTalkingParticle: View {
         }
         .animation(.easeInOut(duration: 0.12), value: self.particleSize)
         .animation(.easeInOut(duration: 0.15), value: self.particleOpacity)
-        .onReceive(self.particleTimer) { _ in
-            if self.isParticleVisible {
-                self.updateParticleAnimation()
-            }
-        }
-        .onAppear {
-            self.isParticleVisible = true
-        }
-        .onDisappear {
-            self.isParticleVisible = false
-        }
+        .onChange(of: self.audioLevel) { _, _ in self.updateParticleAnimation() }
+        .onChange(of: self.config.noiseThreshold) { _, _ in self.updateParticleAnimation() }
     }
 
     private func updateParticleAnimation() {
-        let currentTime = Date().timeIntervalSince1970
-
-        // Simple frame limiting for consistent 30 FPS
-        if currentTime - self.lastParticleUpdateTime < 0.033 { return }
-        self.lastParticleUpdateTime = currentTime
-
-        self.animationTrigger += 1
-
         // Real-time responsive animation
         if self.audioLevel <= self.config.noiseThreshold { // USE THE USER-CONTROLLABLE THRESHOLD!
             // Complete stillness during silence
             self.pulseScale = 1.0
-            if self.animationTrigger % 10 == 0 {
-                self.rotationAngle += 0.2
-            }
         } else {
             // Fast, responsive animation
             self.animationPhase += 0.3 // Much faster phase changes

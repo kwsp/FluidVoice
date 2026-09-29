@@ -8,7 +8,7 @@ struct PagePresentationTests {
         let destinations: [SidebarItem] = [
             .welcome, .history, .stats, .voiceEngine, .aiEnhancements, .cleanupStyles,
             .customDictionary, .commandMode, .fileTranscription, .meetingTranscription,
-            .feedback, .changelog, .rewriteMode,
+            .changelog, .rewriteMode,
         ]
         var checks = 0
         func check(_ value: Bool, _ message: String) {

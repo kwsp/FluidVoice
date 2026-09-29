@@ -61,8 +61,6 @@ struct SettingsView: View {
     @State private var cachedDefaultOutputName: String = ""
 
 
-    @State private var rollbackVersion: String = ""
-    @State private var isRollingBack: Bool = false
     @State private var audioHistoryBudgetText: String = Self.audioBudgetText(for: SettingsStore.shared.audioHistoryBudgetGB)
     @State private var audioHistoryUsageBytes: Int64 = 0
     @State private var draggedMicrophoneUID: String?
@@ -338,184 +336,16 @@ struct SettingsView: View {
 
                             Divider().opacity(0.2)
 
-                            // Automatic Updates
                             VStack(alignment: .leading, spacing: 6) {
-                                HStack(alignment: .center) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Automatic Updates")
-                                            .font(self.theme.typography.bodyStrong)
-                                            .foregroundStyle(self.settingsTitleText)
-                                        Text("Check for updates automatically once per hour")
-                                            .font(self.theme.typography.bodySmall)
-                                            .foregroundStyle(self.settingsSecondaryText)
-                                    }
-
-                                    Spacer()
-
-                                    Toggle("", isOn: Binding(
-                                        get: { SettingsStore.shared.autoUpdateCheckEnabled },
-                                        set: { SettingsStore.shared.autoUpdateCheckEnabled = $0 }
-                                    ))
-                                    .toggleStyle(.switch)
-                                    .tint(self.theme.palette.accent)
-                                    .labelsHidden()
-                                }
-
-                                HStack(alignment: .center) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Beta Releases")
-                                            .font(self.theme.typography.bodyStrong)
-                                            .foregroundStyle(self.settingsTitleText)
-                                        Text("Opt in to preview builds that may be unstable")
-                                            .font(self.theme.typography.bodySmall)
-                                            .foregroundStyle(self.settingsSecondaryText)
-                                    }
-
-                                    Spacer()
-
-                                    Toggle("", isOn: Binding(
-                                        get: { SettingsStore.shared.betaReleasesEnabled },
-                                        set: { SettingsStore.shared.betaReleasesEnabled = $0 }
-                                    ))
-                                    .toggleStyle(.switch)
-                                    .tint(self.theme.palette.accent)
-                                    .labelsHidden()
-                                }
-
-                                if SettingsStore.shared.betaReleasesEnabled {
-                                    Text("Beta opt-in enabled. Update checks include both stable and beta builds.")
-                                        .font(.fluidSystem(.caption))
-                                        .foregroundStyle(self.theme.palette.warning)
-                                }
-
-                                if let lastCheck = SettingsStore.shared.lastUpdateCheckDate {
-                                    Text("Last checked: \(lastCheck.formatted(date: .abbreviated, time: .shortened))")
-                                        .font(self.theme.typography.bodySmall)
-                                        .foregroundStyle(self.settingsSecondaryText)
-                                }
-
+                                Text("Fork Updates")
+                                    .font(self.theme.typography.bodyStrong)
+                                Text("Install new builds from this fork manually. In-app update checks are disabled.")
+                                    .font(self.theme.typography.bodySmall)
+                                    .foregroundStyle(self.settingsSecondaryText)
                                 Text("Current version: \(self.currentAppVersion)")
                                     .font(self.theme.typography.bodySmall)
-                                    .foregroundStyle(self.settingsSecondaryText)
                             }
                             .settingsSearchTarget(.automaticUpdates)
-
-                            // Update Buttons
-                            HStack(spacing: 10) {
-                                Button("Check for Updates") {
-                                    Task { @MainActor in
-                                        do {
-                                            let includePrerelease = SettingsStore.shared.betaReleasesEnabled
-                                            try await SimpleUpdater.shared.checkAndUpdate(
-                                                owner: "altic-dev",
-                                                repo: "Fluid-oss",
-                                                includePrerelease: includePrerelease
-                                            )
-                                        } catch SimpleUpdateError.updateAlreadyInProgress {
-                                            DebugLogger.shared.info(
-                                                "Update installation already in progress",
-                                                source: "SettingsView"
-                                            )
-                                        } catch {
-                                            let msg = NSAlert()
-                                            if let pmkError = error as? PMKError, pmkError.isCancelled {
-                                                let isBeta = SettingsStore.shared.betaReleasesEnabled
-                                                msg.messageText = isBeta ? "You're Up To Date (Beta)" : "You're Up To Date"
-                                                msg.informativeText = isBeta
-                                                    ? "You're already running the latest build available in the beta channel."
-                                                    : "You're already running the latest version of FluidVoice."
-                                            } else {
-                                                msg.messageText = "Update Check Failed"
-                                                msg.informativeText = "Unable to check for updates. Please try again later.\n\nError: \(error.localizedDescription)"
-                                            }
-                                            msg.alertStyle = .informational
-                                            msg.runModal()
-                                        }
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(self.theme.palette.accent)
-                                .controlSize(.regular)
-
-                                Button("Release Notes") {
-                                    if let url = URL(string: "https://github.com/altic-dev/Fluid-oss/releases") {
-                                        NSWorkspace.shared.open(url)
-                                    }
-                                }
-                                .fluidOutlinedButton()
-                                .controlSize(.regular)
-
-                                Button(self.rollbackVersion.isEmpty ? "Rollback" : "Rollback to \(self.rollbackVersion)") {
-                                    guard !self.isRollingBack else { return }
-
-                                    let infoText = self.rollbackVersion.isEmpty ? "your previously installed version" : self.rollbackVersion
-                                    let targetVersion = self.rollbackVersion
-                                    let confirm = NSAlert()
-                                    confirm.messageText = "Rollback to \(infoText)?"
-                                    confirm.informativeText = "This will restore a previous app version and relaunch FluidVoice."
-                                    confirm.alertStyle = .warning
-                                    confirm.addButton(withTitle: "Rollback")
-                                    confirm.addButton(withTitle: "Cancel")
-
-                                    guard confirm.runModal() == .alertFirstButtonReturn else { return }
-
-                                    self.isRollingBack = true
-                                    Task {
-                                        defer {
-                                            Task { @MainActor in
-                                                self.isRollingBack = false
-                                            }
-                                        }
-
-                                        do {
-                                            try await SimpleUpdater.shared.rollbackToLatestBackup()
-                                            await MainActor.run {
-                                                let success = NSAlert()
-                                                success.messageText = "Rollback Successful"
-                                                success.informativeText = "Rolled back to \(targetVersion). FluidVoice will relaunch shortly."
-                                                success.alertStyle = .informational
-                                                success.addButton(withTitle: "Report Bug")
-                                                success.addButton(withTitle: "OK")
-                                                let response = success.runModal()
-                                                if response == .alertFirstButtonReturn {
-                                                    self.openIssueReportingPage()
-                                                }
-                                            }
-                                        } catch {
-                                            await MainActor.run {
-                                                let fail = NSAlert()
-                                                fail.messageText = "Rollback Failed"
-                                                fail.informativeText = error.localizedDescription
-                                                fail.alertStyle = .critical
-                                                fail.addButton(withTitle: "OK")
-                                                fail.runModal()
-                                                self.refreshRollbackState()
-                                            }
-                                        }
-                                    }
-                                }
-                                .fluidOutlinedButton()
-                                .controlSize(.regular)
-                                .disabled(self.rollbackVersion.isEmpty || self.isRollingBack)
-                                .opacity(self.isRollingBack ? 0.7 : 1.0)
-
-                                Button("Get Previous Builds") {
-                                    self.openPreviousBuildPicker()
-                                }
-                                .fluidOutlinedButton()
-                                .controlSize(.regular)
-                            }
-                            .padding(.top, 12)
-
-                            if self.rollbackVersion.isEmpty {
-                                Text("No rollback backup found.")
-                                    .font(self.theme.typography.bodySmall)
-                                    .foregroundStyle(self.settingsSecondaryText)
-                            } else {
-                                Text("Rollback target: \(self.rollbackVersion)")
-                                    .font(self.theme.typography.bodySmall)
-                                    .foregroundStyle(self.settingsSecondaryText)
-                            }
                         }
                     }
                     .padding(16)
@@ -1571,15 +1401,6 @@ struct SettingsView: View {
         }
     }
 
-    private func refreshRollbackState() {
-        self.rollbackVersion = SimpleUpdater.shared.latestRollbackVersion() ?? ""
-    }
-
-    private func openIssueReportingPage() {
-        guard let url = URL(string: "https://github.com/altic-dev/Fluid-oss/issues/new/choose") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
     private func exportBackup() {
         Task { await self.performBackupExport() }
     }
@@ -1758,59 +1579,6 @@ struct SettingsView: View {
         alert.addButton(withTitle: "OK")
         alert.runModal()
     }
-
-    private func openPreviousBuildPicker() {
-        Task { @MainActor in
-            do {
-                let options = try await SimpleUpdater.shared.fetchRecentReleaseBuildOptions(
-                    owner: "altic-dev",
-                    repo: "Fluid-oss",
-                    limit: 3,
-                    includePrerelease: SettingsStore.shared.betaReleasesEnabled
-                )
-                self.presentPreviousBuildPicker(options)
-            } catch {
-                self.openAllReleasesPage()
-            }
-        }
-    }
-
-    private func presentPreviousBuildPicker(_ options: [SimpleUpdater.ReleaseBuildOption]) {
-        guard !options.isEmpty else {
-            self.openAllReleasesPage()
-            return
-        }
-
-        let picker = NSAlert()
-        picker.messageText = "Download Previous Build"
-        picker.informativeText = "No local rollback backup was found. Choose a recent release build:"
-        picker.alertStyle = .informational
-
-        for option in options {
-            picker.addButton(withTitle: option.version)
-        }
-        picker.addButton(withTitle: "All Releases")
-        picker.addButton(withTitle: "Cancel")
-
-        let response = picker.runModal()
-        let first = NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
-        let index = response.rawValue - first
-
-        if index >= 0, index < options.count {
-            NSWorkspace.shared.open(options[index].url)
-            return
-        }
-        if index == options.count {
-            self.openAllReleasesPage()
-        }
-    }
-
-    private func openAllReleasesPage() {
-        guard let url = URL(string: "https://github.com/altic-dev/Fluid-oss/releases") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-
 
     // MARK: - Helper Views
 
@@ -2600,7 +2368,6 @@ private extension SettingsView {
         guard !Task.isCancelled else { return }
         switch self.selectedSection {
         case .general:
-            self.refreshRollbackState()
             self.settings.refreshLaunchAtStartupStatus(clearError: true, logMismatch: false)
         case .audio:
             await self.prepareAudioSettings()

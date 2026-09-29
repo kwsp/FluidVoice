@@ -98,35 +98,16 @@ struct LiquidBar: View {
                 GeometryReader { geo in
                     let displayHeight = geo.size.height * CGFloat(self.animatedFill)
 
-                    Group {
-                        if self.reduceMotion {
-                            LiquidLayer(phase: 0.0, time: 0)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [self.color, self.secondaryColor],
-                                        startPoint: .bottom,
-                                        endPoint: .top
-                                    )
-                                )
-                                .frame(height: displayHeight)
-                        } else {
-                            TimelineView(.animation(minimumInterval: 1.0 / 12.0)) { timeline in
-                                let time = timeline.date.timeIntervalSinceReferenceDate
-
-                                // Single organic liquid surface
-                                LiquidLayer(phase: 0.0, time: time)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [self.color, self.secondaryColor],
-                                            startPoint: .bottom,
-                                            endPoint: .top
-                                        )
-                                    )
-                                    .frame(height: displayHeight)
-                            }
-                        }
-                    }
-                    .frame(maxHeight: .infinity, alignment: .bottom)
+                    LiquidLayer(phase: 0.0, time: 0)
+                        .fill(
+                            LinearGradient(
+                                colors: [self.color, self.secondaryColor],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
+                        )
+                        .frame(height: displayHeight)
+                        .frame(maxHeight: .infinity, alignment: .bottom)
                 }
                 .clipShape(Capsule())
                 .padding(3)

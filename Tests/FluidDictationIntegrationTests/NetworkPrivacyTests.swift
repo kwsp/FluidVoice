@@ -4,6 +4,41 @@ import XCTest
 
 @MainActor
 final class NetworkPrivacyTests: XCTestCase {
+    func testImportedUpdateSettingCannotEnableChecks() {
+        let defaults = UserDefaults.standard
+        let key = "AutoUpdateCheckEnabled"
+        let previous = defaults.object(forKey: key)
+        defer {
+            if let previous { defaults.set(previous, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+        defaults.set(true, forKey: key) // Simulate a persisted upstream preference.
+        let settings = SettingsStore.shared
+        XCTAssertFalse(settings.autoUpdateCheckEnabled)
+        settings.autoUpdateCheckEnabled = true
+        XCTAssertFalse(settings.autoUpdateCheckEnabled)
+        XCTAssertFalse(settings.shouldCheckForUpdates())
+    }
+
+    func testUpdaterEntryPointsAreDisabled() async {
+        let operations: [() async throws -> Void] = [
+            { _ = try await SimpleUpdater.shared.checkForUpdate(owner: "example", repo: "disabled") },
+            { try await SimpleUpdater.shared.checkAndUpdate(owner: "example", repo: "disabled") },
+            { _ = try await SimpleUpdater.shared.fetchRecentReleaseNotes(owner: "example", repo: "disabled") },
+            { _ = try await SimpleUpdater.shared.fetchRecentReleaseBuildOptions(owner: "example", repo: "disabled") },
+        ]
+        for operation in operations {
+            do {
+                try await operation()
+                XCTFail("Upstream update entry point must be disabled")
+            } catch SimpleUpdateError.disabledInFork {
+                // Expected: no request, download, or installation is possible.
+            } catch {
+                XCTFail("Unexpected updater error: \(error)")
+            }
+        }
+    }
+
     func testOnlyLiteralLoopbackOrLocalhostAreAllowed() throws {
         for address in ["http://localhost:11434/v1", "http://127.0.0.1:1234/v1", "http://[::1]:1234/v1", "https://LOCALHOST:1234/v1"] {
             XCTAssertTrue(LocalOnlyNetworking.allows(address), address)

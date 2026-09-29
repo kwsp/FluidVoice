@@ -18,7 +18,6 @@ enum SidebarItem: Hashable {
     case stats
     case history
     case changelog
-    case feedback
     case commandMode
     case rewriteMode
 
@@ -34,7 +33,6 @@ enum SidebarItem: Hashable {
         case .stats: "Stats"
         case .history: "History"
         case .changelog: "Change logs"
-        case .feedback: "Feedback"
         case .commandMode: "Command Mode"
         case .rewriteMode: "Edit Mode"
         }
