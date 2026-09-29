@@ -189,6 +189,16 @@ Whisper supports up to 99 languages, depending on the model size you choose.
 
 ## Building from Source
 
+For a certificate-free, ad-hoc signed Release build of this fork:
+
+```bash
+./build.sh adhoc
+```
+
+The app is at `DerivedData/Build/Products/Release/FluidVoice.app`; a verified app ZIP, SHA-256 checksum, and installation notes are in `builds/`. This build uses the separate bundle ID `com.kwsp.FluidVoice`. It is not notarized, so downloaded builds may need **System Settings → Privacy & Security → Open Anyway**, and ad-hoc rebuilds may need permissions granted again.
+
+On GitHub, select **Actions → Downloadable ad-hoc build → Run workflow**. After success, download the artifact at the bottom of the run summary. The workflow also runs on relevant pushes to `main`. It needs no signing secrets and retains artifacts for 30 days.
+
 ```bash
 git clone https://github.com/altic-dev/FluidVoice.git
 cd FluidVoice

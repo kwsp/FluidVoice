@@ -1,0 +1,50 @@
+name: Downloadable ad-hoc build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'Sources/**'
+      - 'Vendor/**'
+      - 'Fluid.xcodeproj/**'
+      - 'Info.plist'
+      - 'Fluid.entitlements'
+      - 'Package.*'
+      - 'build.sh'
+      - 'tools/build_adhoc.sh'
+      - 'Tests/check_network_policy.py'
+      - 'Tests/network_surface.json'
+      - '.github/workflows/adhoc-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Build, sign, package, and verify
+        run: ./build.sh adhoc
+      - name: Upload downloadable app
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluidVoice-Local-${{ runner.arch }}-${{ github.sha }}
+          path: |
+            builds/*.app.zip
+            builds/SHA256SUMS
+            builds/build-info.txt
+            builds/README.txt
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Download instructions
+        run: |
+          echo '### Download FluidVoice' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Open the artifact below this run summary. Extract its outer ZIP, then the app ZIP inside. This is an ad-hoc signed build, without Developer ID notarization.' >> "$GITHUB_STEP_SUMMARY"

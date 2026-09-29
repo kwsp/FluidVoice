@@ -47,6 +47,9 @@ Policy: user data stays on this Mac. Downloading STT models is allowed. Initial 
 
 ## Work log
 
+- 2026-09-29: added certificate-free ad-hoc Release packaging and a downloadable GitHub Actions artifact workflow. Signing/package verification is local; CI uploads only the built app, checksum, build metadata, and installation notes. STT models and user recordings/settings are not bundled.
+- Validation: `./build.sh adhoc` passed on arm64 with Xcode 27. The app and ZIP-extracted copy passed `codesign --verify --deep --strict`; microphone entitlement, architecture, and embedded runtime dependencies were checked. Shell/YAML syntax and the network inventory passed. The GitHub-hosted workflow has not been run yet.
+
 - 2026-09-29: static audit of upstream `3b509ea1`; identified telemetry, Apple online recognition, remote AI, feedback/example uploads, updater traffic, and shell-command egress.
 - 2026-09-29: implemented requested items 1–4. Used inert telemetry compatibility methods to keep future upstream merges small without retaining a collector or transport. No app traffic was sent to telemetry, feedback, or remote inference services during implementation/testing.
 

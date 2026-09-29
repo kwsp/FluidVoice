@@ -6,6 +6,8 @@
 
 # Local build notes
 
+- `./build.sh adhoc` (alias `self-signed`) creates an ad-hoc signed Release app at `DerivedData/Build/Products/Release/FluidVoice.app` and a verified ZIP under `builds/`. It uses bundle ID `com.kwsp.FluidVoice`; no Apple certificate is needed. This is not Developer ID notarization. `.github/workflows/adhoc-build.yml` runs the same script and uploads a downloadable artifact.
+
 - Build the macOS app with `./build.sh unsigned` when no Apple Development signing certificate is available. This invokes `xcodebuild` on `Fluid.xcodeproj`, scheme `Fluid`, configuration `Debug`.
 - Output: `DerivedData/Build/Products/Debug/FluidVoice Debug.app`. Launch with `open "DerivedData/Build/Products/Debug/FluidVoice Debug.app"`.
 - For signed development builds, run `./build.sh` after creating an Apple Development certificate in Xcode Settings > Accounts > Manage Certificates. A Personal Team is sufficient. The script also repairs the CTranscribe framework layout and verifies the signature.

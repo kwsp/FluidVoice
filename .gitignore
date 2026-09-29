@@ -187,6 +187,7 @@ SettingsStore.xcuserstate
 
 # Build and release scripts (developer-specific)
 build_*
+!tools/build_adhoc.sh
 build_dev.sh
 build_and_notarize.sh
 release.sh

@@ -7,6 +7,7 @@
 #   ./build.sh                    # signed public OSS build
 #   ./build.sh public             # signed public OSS build
 #   ./build.sh unsigned           # unsigned public OSS build (CI/fallback)
+#   ./build.sh adhoc              # ad-hoc signed Release app and downloadable ZIP
 #   ./build.sh fi                 # private FI build
 
 set -euo pipefail
@@ -202,6 +203,9 @@ EOF
 }
 
 case "${PROFILE}" in
+    adhoc|self-signed)
+        exec bash "${PROJECT_DIR}/tools/build_adhoc.sh"
+        ;;
     public|oss|incremental|fast)
         run_public_build signed
         ;;
@@ -219,7 +223,7 @@ case "${PROFILE}" in
         ;;
     *)
         echo "Unknown build profile: ${PROFILE}"
-        echo "Valid profiles: public/oss/incremental/fast, unsigned/ci, fi/private/dev/full"
+        echo "Valid profiles: public/oss/incremental/fast, unsigned/ci, adhoc/self-signed, fi/private/dev/full"
         exit 1
         ;;
 esac
