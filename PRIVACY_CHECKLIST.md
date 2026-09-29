@@ -76,3 +76,5 @@ xcodebuild test -project Fluid.xcodeproj -scheme Fluid -configuration Debug \
 ```
 
 Build retains existing upstream warnings (including CTranscribe framework symlink and Swift concurrency/deprecation warnings). SwiftLint was not installed locally; it was not run. No real audio or user transcript was used in network fixtures.
+
+- 2026-09-29: first hosted CI run passed the privacy guard but found five strict SwiftLint violations in fork changes. Corrected argument/statement formatting, blank lines, and explicit discard of forbidden imported preference values. Hosted build/test and artifact verification pending.

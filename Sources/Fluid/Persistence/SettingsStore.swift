@@ -1506,7 +1506,10 @@ final class SettingsStore: ObservableObject {
     /// Compatibility with imported upstream settings; telemetry cannot be enabled.
     var shareDetailedAnalytics: Bool {
         get { false }
-        set { self.defaults.set(false, forKey: Keys.shareAnonymousAnalytics) }
+        set {
+            _ = newValue // Imported preferences cannot enable telemetry.
+            self.defaults.set(false, forKey: Keys.shareAnonymousAnalytics)
+        }
     }
 
     var privateAIInterestCaptured: Bool {
@@ -2742,6 +2745,7 @@ final class SettingsStore: ObservableObject {
             false // Fork policy: imported upstream settings cannot enable update checks.
         }
         set {
+            _ = newValue // Imported preferences cannot enable upstream updates.
             self.defaults.set(false, forKey: Keys.autoUpdateCheckEnabled)
         }
     }

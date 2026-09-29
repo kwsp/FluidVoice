@@ -60,7 +60,6 @@ struct SettingsView: View {
     @State private var cachedDefaultInputUID: String = ""
     @State private var cachedDefaultOutputName: String = ""
 
-
     @State private var audioHistoryBudgetText: String = Self.audioBudgetText(for: SettingsStore.shared.audioHistoryBudgetGB)
     @State private var audioHistoryUsageBytes: Int64 = 0
     @State private var draggedMicrophoneUID: String?

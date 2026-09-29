@@ -9,8 +9,11 @@ final class NetworkPrivacyTests: XCTestCase {
         let key = "AutoUpdateCheckEnabled"
         let previous = defaults.object(forKey: key)
         defer {
-            if let previous { defaults.set(previous, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            if let previous {
+                defaults.set(previous, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
         defaults.set(true, forKey: key) // Simulate a persisted upstream preference.
         let settings = SettingsStore.shared
